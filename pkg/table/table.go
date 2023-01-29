@@ -24,7 +24,7 @@ const (
 )
 
 const (
-  PAGE_SIZE = 100
+  PAGE_SIZE = 1024
 )
 
 type Page struct {
@@ -96,6 +96,7 @@ func (t * Table) executeInsert(statement* Statement) {
     if(byteNr + len(bytes) > PAGE_SIZE) {
       t.pages = append(t.pages, Page{})
       pageNr += 1
+      currPageBytes = t.pages[pageNr-1].bytes
     }
    t.pages[pageNr-1].bytes = append(currPageBytes, bytes...)
    t.rowNr += 1
