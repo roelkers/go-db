@@ -1,6 +1,7 @@
 package row
 
 import (
+	"io"
 	"hash/crc32"
 	"encoding/binary"
 	"errors"
@@ -43,6 +44,11 @@ func NewRow(id uint32, username string, email string) (*Row) {
 		username: username,
 		email: email,
 	}
+}
+
+// Size returns the serialized byte size
+func (r *Row) Size() int {
+	return META_LENGTH + len(r.username) + len(r.email)
 }
 
 //Conversion
@@ -107,4 +113,9 @@ func FromBytes(data []byte) (*Row, error) {
 	}
 
 	return &Row{id: id, username: string(username), email: string(email)}, nil
+}
+
+func (r *Row) Write(w io.Writer) (int, error) {
+	data := r.ToBytes()
+	return w.Write(data)
 }

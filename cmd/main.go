@@ -26,7 +26,7 @@ func main() {
     statement := new(table.Statement)
     err := t.PrepareStatement(text, statement) 
     if err != nil {
-       fmt.Printf("Unrecognized keyword at start of '%s'.\n", text)
+       fmt.Println(err)
        continue
     } 
 
