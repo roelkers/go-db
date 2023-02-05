@@ -33,7 +33,7 @@ type Page struct {
 }
 
 func NewPager(filename string, pageSize int, maxPages int) (*Pager, error) {
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND, 0600)
   if err != nil {
     return nil,err
   }
@@ -48,10 +48,10 @@ func NewPager(filename string, pageSize int, maxPages int) (*Pager, error) {
   return &pager,nil
 }
 
-func (p * Pager) GetPage(pageNumber int) *Page {
+func (p * Pager) GetPage(pageNumber int) (*Page,error) {
   //cache hit
   if item,ok := p.pages[pageNumber]; ok {
-    return &item
+    return &item,nil
   }
   //cache miss
   p.file.Seek(int64(pageNumber * p.pageSize), io.SeekStart)
@@ -63,11 +63,20 @@ func (p * Pager) GetPage(pageNumber int) *Page {
     bytesRead += row.Size()
     rows = append(rows, *row)
   }
+	if scanner.Err() != nil {
+		return nil, scanner.Err()
+	}
   p.pages[pageNumber] = Page {
     rows:rows,
   }
   item := p.pages[pageNumber]
-  return &item
+  return &item,nil
+}
+
+func (p * Pager) FlushPages() {
+    for i := range p.pages {
+      p.flushPage(i)
+    }
 }
 
 func (p * Pager) flushPage(pageNumber int) (error) {
@@ -87,8 +96,12 @@ func (p * Pager) flushPage(pageNumber int) (error) {
   if len(bytes) > p.pageSize{
     return errors.New("Length rows in page bigger than page size")
   }
-  copy(bytes[0:],pageBytes)
+  copy(pageBytes,bytes[0:])
   _, err = p.file.Write(pageBytes)
+  if err != nil {
+    return err
+  }
+  err = p.file.Sync()
   if err != nil {
     return err
   }
@@ -98,7 +111,10 @@ func (p * Pager) flushPage(pageNumber int) (error) {
 func (p * Pager) getPageWithSpace(r * row.Row) (int, error) {
     newRowSize := len(r.ToBytes())
     for i:= 0; i <= p.maxPages; i++ {
-      page := p.GetPage(i)
+      page, err := p.GetPage(i)
+      if err != nil {
+        return 0, err
+      }
       if page.size + newRowSize <= p.pageSize {
         return i,nil 
       }

@@ -2,21 +2,35 @@ package pager
 
 import (
 	"testing"
+	"io/ioutil"
+	"os"
+	"path"
 	"github.com/stretchr/testify/require"
 	"github.com/roelkers/go_db/pkg/row"
 )
 
 func TestAppendOnePage(t *testing.T) {
+	testPath, err := ioutil.TempDir("./", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer (func() {
+		os.RemoveAll(testPath)
+	})()
+
 	PAGE_SIZE := 440
 	NROWS := 10
 	r := row.NewRow(1, "rufus.oelkers@yahoo.com", "rufus")
-	p,err := NewPager("./table.db", PAGE_SIZE, 1)
+	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 1)
 	require.NoError(t, err)
 	for i:= 0; i < NROWS; i++ {
 		err := p.AppendRow(r)
 		require.NoError(t, err)
   }
-	rows := p.GetPage(0).rows
+	page,err := p.GetPage(0)
+	require.NoError(t, err)
+	rows := page.rows
 	for i:= 0; i < NROWS; i++ {
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
@@ -25,29 +39,43 @@ func TestAppendOnePage(t *testing.T) {
 }
 
 func TestAppendMultiPage(t *testing.T) {
+	testPath, err := ioutil.TempDir("./", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer (func() {
+		os.RemoveAll(testPath)
+	})()
 	PAGE_SIZE := 440 
 	NROWS := 30
 	NROWS_P_PAGE := NROWS / 3
 	r := row.NewRow(1, "rufus.oelkers@yahoo.com", "rufus")
-	p,err := NewPager("./table.db", PAGE_SIZE, 3)
+	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 3)
 	require.NoError(t, err)
 	for i:= 0; i < NROWS; i++ {
 		err := p.AppendRow(r)
 		require.NoError(t, err)
   }
-	rows := p.GetPage(0).rows
+	page,err := p.GetPage(0)
+	require.NoError(t, err)
+	rows := page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
   }
-	rows = p.GetPage(1).rows
+	page, err = p.GetPage(1)
+	require.NoError(t, err)
+	rows = page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
   }
-	rows = p.GetPage(2).rows
+	page,err = p.GetPage(2)
+	require.NoError(t, err)
+	rows = page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
@@ -55,20 +83,33 @@ func TestAppendMultiPage(t *testing.T) {
   }
 }
 
-func TestInsertMany(t *testing.T) {
-	tab,err := MakeTable("./table.db" , 10)
-	require.NoError(t, err)
-	for i:= 0; i < 200; i++ {
-		r := row.NewRow(uint32(i), "rufus.oelkers@gmail.com", "rufus")
-		s := Statement{
-			typ: STATEMENT_INSERT,
-			row: r,
-		}
-		tab.executeInsert(&s)
+func TestGetAndFlushPage(t *testing.T) {
+	testPath, err := ioutil.TempDir("./", "test")
+	if err != nil {
+		t.Fatal(err)
 	}
-	s := Statement{
-		typ: STATEMENT_SELECT,
-	}
-	err = tab.executeSelect(&s)
+
+	defer (func() {
+		os.RemoveAll(testPath)
+	})()
+
+	PAGE_SIZE := 440
+	NROWS := 10
+	r := row.NewRow(1, "rufus.oelkers@yahoo.com", "rufus")
+	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 1)
 	require.NoError(t, err)
+	for i:= 0; i < NROWS; i++ {
+		err := p.AppendRow(r)
+		require.NoError(t, err)
+  }
+	p.FlushPages()
+	p.clearCache()
+	page,err := p.GetPage(0)
+	require.NoError(t, err)
+	rows := page.rows
+	for i:= 0; i < NROWS; i++ {
+		require.Equal(t, rows[i].Email(), r.Email())
+		require.Equal(t, rows[i].Id(), r.Id())
+		require.Equal(t, rows[i].Username(), r.Username())
+  }
 }
