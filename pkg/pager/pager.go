@@ -2,6 +2,7 @@ package pager
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"github.com/roelkers/go_db/pkg/row"
@@ -33,7 +34,7 @@ type Page struct {
 }
 
 func NewPager(filename string, pageSize int, maxPages int) (*Pager, error) {
-	file, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND, 0600)
+	file, err := os.OpenFile(filename, os.O_CREATE | os.O_RDWR, 0600)
   if err != nil {
     return nil,err
   }
@@ -54,7 +55,9 @@ func (p * Pager) GetPage(pageNumber int) (*Page,error) {
     return &item,nil
   }
   //cache miss
-  p.file.Seek(int64(pageNumber * p.pageSize), io.SeekStart)
+  filePos := int64(pageNumber * p.pageSize)
+  fmt.Println(filePos)
+  p.file.Seek(filePos, io.SeekStart)
   scanner, _ := row.NewScanner(p.file, p.pageSize)
   rows := make([]row.Row,0)
   bytesRead := 0
@@ -73,10 +76,14 @@ func (p * Pager) GetPage(pageNumber int) (*Page,error) {
   return &item,nil
 }
 
-func (p * Pager) FlushPages() {
+func (p * Pager) FlushPages() error {
     for i := range p.pages {
-      p.flushPage(i)
+      err := p.flushPage(i)
+      if err != nil {
+        return err
+      }
     }
+    return nil
 }
 
 func (p * Pager) flushPage(pageNumber int) (error) {
@@ -92,15 +99,14 @@ func (p * Pager) flushPage(pageNumber int) (error) {
   for _,r := range page.rows {
     bytes = append(bytes, r.ToBytes()...)
   }
-  pageBytes := make([]byte, p.pageSize)
   if len(bytes) > p.pageSize{
     return errors.New("Length rows in page bigger than page size")
   }
-  copy(pageBytes,bytes[0:])
-  _, err = p.file.Write(pageBytes)
+  n, err := p.file.Write(bytes)
   if err != nil {
     return err
   }
+  fmt.Printf("FlushPage: Written %d bytes \n", n)
   err = p.file.Sync()
   if err != nil {
     return err

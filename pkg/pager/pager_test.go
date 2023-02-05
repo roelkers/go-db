@@ -93,7 +93,7 @@ func TestGetAndFlushPage(t *testing.T) {
 		os.RemoveAll(testPath)
 	})()
 
-	PAGE_SIZE := 440
+	PAGE_SIZE := 4096
 	NROWS := 10
 	r := row.NewRow(1, "rufus.oelkers@yahoo.com", "rufus")
 	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 1)
@@ -102,7 +102,8 @@ func TestGetAndFlushPage(t *testing.T) {
 		err := p.AppendRow(r)
 		require.NoError(t, err)
   }
-	p.FlushPages()
+	err = p.FlushPages()
+	require.NoError(t, err)
 	p.clearCache()
 	page,err := p.GetPage(0)
 	require.NoError(t, err)
