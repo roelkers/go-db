@@ -1,7 +1,6 @@
 package table
 
 import (
-	"fmt"
 	"testing"
 	"github.com/stretchr/testify/require"
 	"github.com/roelkers/go_db/pkg/row"
@@ -9,7 +8,8 @@ import (
 
 func TestInsertSelect(t *testing.T) {
 	row := row.NewRow(1, "rufus.oelkers@gmail.com", "rufus")
-	tab := MakeTable()
+	tab,err := MakeTable("./table.db", 100)
+	require.NoError(t, err)
 	s := Statement{
 		typ: STATEMENT_INSERT,
 		row: row,
@@ -18,14 +18,14 @@ func TestInsertSelect(t *testing.T) {
 	s = Statement{
 		typ: STATEMENT_SELECT,
 	}
-	fmt.Println(string(tab.pages[0].bytes))
-	err := tab.executeSelect(&s)
+	err = tab.executeSelect(&s)
 	require.NoError(t, err)
 }
 
 func TestInsertMany(t *testing.T) {
-	tab := MakeTable()
-	for i:= 0; i < 1000; i++ {
+	tab,err := MakeTable("./table.db" , 10)
+	require.NoError(t, err)
+	for i:= 0; i < 200; i++ {
 		r := row.NewRow(uint32(i), "rufus.oelkers@gmail.com", "rufus")
 		s := Statement{
 			typ: STATEMENT_INSERT,
@@ -36,6 +36,6 @@ func TestInsertMany(t *testing.T) {
 	s := Statement{
 		typ: STATEMENT_SELECT,
 	}
-	err := tab.executeSelect(&s)
+	err = tab.executeSelect(&s)
 	require.NoError(t, err)
 }

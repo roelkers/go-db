@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-  "bytes"
 
 	"github.com/roelkers/go_db/pkg/row"
+	"github.com/roelkers/go_db/pkg/pager"
 )
 
 
@@ -23,30 +23,23 @@ const (
   STATEMENT_SELECT
 )
 
-const (
-  PAGE_SIZE = 1024
-)
-
-type Page struct {
-  bytes []byte
-}
-
 ///TABLE
 // var TABLE_MAX_ROWS = ROWS_PER_PAGE * TABLE_MAX_PAGES
 
 type Table struct {
-  pages []Page
-  rowNr int
+  pager *pager.Pager
 }
 
 
-func MakeTable() (* Table) {
-  pages := make([]Page,1)
+func MakeTable(filename string, pageSize int) (* Table, error) {
+  pager, err := pager.NewPager(filename, pageSize) 
+  if err != nil {
+    return nil,err
+  }
 	table := Table{
-    pages: pages,
-    rowNr: 0,
+    pager: pager,
 	}	
-	return &table
+	return &table,nil
 }
 
 type Statement struct {
@@ -89,36 +82,18 @@ func (t * Table) PrepareStatement(cmd string, statement* Statement) (error) {
 }
 
 func (t * Table) executeInsert(statement* Statement) {
-    bytes := statement.row.ToBytes() 
-    pageNr := len(t.pages)
-    currPageBytes := t.pages[pageNr-1].bytes
-    byteNr := len(currPageBytes)
-    if(byteNr + len(bytes) > PAGE_SIZE) {
-      t.pages = append(t.pages, Page{})
-      pageNr += 1
-      currPageBytes = t.pages[pageNr-1].bytes
-    }
-   t.pages[pageNr-1].bytes = append(currPageBytes, bytes...)
-   t.rowNr += 1
-}
-
-func (t * Table) scanPage(page Page) []row.Row {
-  reader := bytes.NewReader(page.bytes)
-  scanner, _ := row.NewScanner(reader, 4096)
-  rows := make([]row.Row, 0)
-  for scanner.Scan() {
-    rows = append(rows, *scanner.Row())
-  }
-  return rows
+  t.pager.AppendRow(statement.row)
 }
 
 func (t * Table) executeSelect(statement* Statement) (error) {
-  for _,page := range t.pages {
-     fmt.Println("New page boundary")
-     rows := t.scanPage(page)
-     for i,row := range(rows) {
-       fmt.Printf("row %d, username: %s, email: %s\n", i, row.Username(), row.Email())
-     } 
+  _ = t.pager.PageMap()[0]
+  // fmt.Println(p.Rows()[0].Email())
+  for i := range t.pager.PageMap() {
+     fmt.Printf("New page boundary page nr is %d\n", i)
+     page := t.pager.GetPage(i)
+     for n,r := range page.Rows() {
+       fmt.Printf("row %d, username: %s, email: %s\n", n, r.Username(), r.Email())
+     }
   }
   return nil
 }
