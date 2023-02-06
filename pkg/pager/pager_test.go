@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"github.com/roelkers/go_db/pkg/row"
 )
@@ -21,10 +22,10 @@ func TestAppendOnePage(t *testing.T) {
 
 	PAGE_SIZE := 440
 	NROWS := 10
-	r := row.NewRow(1, "rufus.oelkers@yahoo.com", "rufus")
 	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 1)
 	require.NoError(t, err)
 	for i:= 0; i < NROWS; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		err := p.AppendRow(r)
 		require.NoError(t, err)
   }
@@ -32,6 +33,7 @@ func TestAppendOnePage(t *testing.T) {
 	require.NoError(t, err)
 	rows := page.rows
 	for i:= 0; i < NROWS; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
@@ -50,10 +52,10 @@ func TestAppendMultiPage(t *testing.T) {
 	PAGE_SIZE := 440 
 	NROWS := 30
 	NROWS_P_PAGE := NROWS / 3
-	r := row.NewRow(1, "rufus.oelkers@yahoo.com", "rufus")
 	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 3)
 	require.NoError(t, err)
 	for i:= 0; i < NROWS; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i%10), "rufus")
 		err := p.AppendRow(r)
 		require.NoError(t, err)
   }
@@ -61,6 +63,7 @@ func TestAppendMultiPage(t *testing.T) {
 	require.NoError(t, err)
 	rows := page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
@@ -69,6 +72,7 @@ func TestAppendMultiPage(t *testing.T) {
 	require.NoError(t, err)
 	rows = page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
@@ -77,6 +81,7 @@ func TestAppendMultiPage(t *testing.T) {
 	require.NoError(t, err)
 	rows = page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
@@ -127,10 +132,10 @@ func TestGetAndFlushMultiPage(t *testing.T) {
 	PAGE_SIZE := 440 
 	NROWS := 30
 	NROWS_P_PAGE := NROWS / 3
-	r := row.NewRow(1, "rufus.oelkers@yahoo.com", "rufus")
 	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 3)
 	require.NoError(t, err)
 	for i:= 0; i < NROWS; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i%10), "rufus")
 		err := p.AppendRow(r)
 		require.NoError(t, err)
   }
@@ -143,6 +148,7 @@ func TestGetAndFlushMultiPage(t *testing.T) {
 	require.NoError(t, err)
 	rows := page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
@@ -151,6 +157,7 @@ func TestGetAndFlushMultiPage(t *testing.T) {
 	require.NoError(t, err)
 	rows = page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
@@ -159,6 +166,7 @@ func TestGetAndFlushMultiPage(t *testing.T) {
 	require.NoError(t, err)
 	rows = page.rows
 	for i:= 0; i < NROWS_P_PAGE; i++ {
+		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		require.Equal(t, rows[i].Email(), r.Email())
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())

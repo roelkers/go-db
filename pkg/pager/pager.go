@@ -2,7 +2,6 @@ package pager
 
 import (
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"github.com/roelkers/go_db/pkg/row"
@@ -56,7 +55,6 @@ func (p * Pager) GetPage(pageNumber int) (*Page,error) {
   }
   //cache miss
   filePos := int64(pageNumber * p.pageSize)
-  fmt.Println(filePos)
   p.file.Seek(filePos, io.SeekStart)
   scanner, _ := row.NewScanner(p.file, p.pageSize)
   rows := make([]row.Row,0)
@@ -66,7 +64,7 @@ func (p * Pager) GetPage(pageNumber int) (*Page,error) {
     bytesRead += row.Size()
     rows = append(rows, *row)
   }
-  fmt.Printf("GetPage: Read %d bytes\n", bytesRead)
+  //fmt.Printf("GetPage: Read %d bytes\n", bytesRead)
 	// if scanner.Err() != nil {
 	// 	return nil, scanner.Err()
 	// }
@@ -103,11 +101,11 @@ func (p * Pager) flushPage(pageNumber int) (error) {
   if len(bytes) > p.pageSize{
     return errors.New("Length rows in page bigger than page size")
   }
-  n, err := p.file.Write(bytes)
+  _, err = p.file.Write(bytes)
   if err != nil {
     return err
   }
-  fmt.Printf("FlushPage: Written %d bytes \n", n)
+  //fmt.Printf("FlushPage: Written %d bytes \n", n)
   err = p.file.Sync()
   if err != nil {
     return err
