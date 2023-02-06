@@ -9,7 +9,10 @@ import (
 )
 
 func main() {
-	t := table.MakeTable()
+	t,err := table.MakeTable("./table.db", 4096, 1000)
+  if err != nil {
+    panic(err)
+  }
   reader := bufio.NewReader(os.Stdin)
   fmt.Println("Please enter a database command")
   for {

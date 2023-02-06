@@ -31,8 +31,8 @@ type Table struct {
 }
 
 
-func MakeTable(filename string, pageSize int) (* Table, error) {
-  pager, err := pager.NewPager(filename, pageSize) 
+func MakeTable(filename string, pageSize int, maxPages int) (* Table, error) {
+  pager, err := pager.NewPager(filename, pageSize, maxPages) 
   if err != nil {
     return nil,err
   }
@@ -49,6 +49,10 @@ type Statement struct {
 
 func (t * Table) DoMetaCommand(cmd string) (error) {
   if cmd == ".exit" {
+    err := t.pager.FlushPages()
+    if err != nil {
+      return err
+    }
     os.Exit(0)
     return errors.New("Exit failed")
   } else {
@@ -90,7 +94,10 @@ func (t * Table) executeSelect(statement* Statement) (error) {
   // fmt.Println(p.Rows()[0].Email())
   for i := range t.pager.PageMap() {
      fmt.Printf("New page boundary page nr is %d\n", i)
-     page := t.pager.GetPage(i)
+     page,err := t.pager.GetPage(i)
+     if err != nil {
+       return err
+     }
      for n,r := range page.Rows() {
        fmt.Printf("row %d, username: %s, email: %s\n", n, r.Username(), r.Email())
      }
