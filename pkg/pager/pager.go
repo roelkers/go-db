@@ -61,14 +61,15 @@ func (p * Pager) GetPage(pageNumber int) (*Page,error) {
   scanner, _ := row.NewScanner(p.file, p.pageSize)
   rows := make([]row.Row,0)
   bytesRead := 0
-  for scanner.Scan() && (bytesRead + scanner.Row().Size() < p.pageSize) {
+  for scanner.Scan() && (bytesRead + scanner.Row().Size() <= p.pageSize) {
     row := scanner.Row()
     bytesRead += row.Size()
     rows = append(rows, *row)
   }
-	if scanner.Err() != nil {
-		return nil, scanner.Err()
-	}
+  fmt.Printf("GetPage: Read %d bytes\n", bytesRead)
+	// if scanner.Err() != nil {
+	// 	return nil, scanner.Err()
+	// }
   p.pages[pageNumber] = Page {
     rows:rows,
   }
