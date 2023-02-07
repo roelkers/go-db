@@ -37,12 +37,21 @@ func NewPager(filename string, pageSize int, maxPages int) (*Pager, error) {
   if err != nil {
     return nil,err
   }
-  pages := make(map[int]Page)
+  stat,err := file.Stat()
+  fileSize := stat.Size()
+  nrPagesToLoad :=  fileSize / int64(pageSize)
+  pages := make(map[int]Page,0)
   pager := Pager{
     pageSize: pageSize,
     file: file,
     pages: pages,
     maxPages: maxPages,
+  }
+  for i := 0; i <= int(nrPagesToLoad); i++ {
+    _, err := pager.GetPage(i)
+    if err != nil {
+      return nil,err
+    }
   }
   
   return &pager,nil
