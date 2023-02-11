@@ -10,16 +10,23 @@ import (
 type Pager struct {
   pageSize int
   file *os.File
-  pages map[int]Page
+  pages []Page
   rowNumber int
   maxPages int
 }
 
-func (p * Pager) clearCache() {
-  p.pages = make(map[int]Page)
+func (p * Pager) clearCache() (error){
+  stat,err := p.file.Stat()
+  if err != nil {
+    return err
+  }
+  fileSize := stat.Size()
+  nrPagesToLoad :=  fileSize / int64(p.pageSize)
+  p.pages = make([]Page, nrPagesToLoad)
+  return err
 }
 
-func (p * Pager) PageMap() map[int]Page {
+func (p * Pager) Pages() []Page {
   return p.pages
 }
 
@@ -30,6 +37,14 @@ func (p * Page) Rows() [] row.Row {
 type Page struct {
   rows []row.Row
   size int
+  loaded bool
+}
+
+func minInitPageNr(nrPagesToLoad int64) int64 {
+  if nrPagesToLoad == 0 {
+    return 1
+  } 
+  return nrPagesToLoad
 }
 
 func NewPager(filename string, pageSize int, maxPages int) (*Pager, error) {
@@ -39,8 +54,9 @@ func NewPager(filename string, pageSize int, maxPages int) (*Pager, error) {
   }
   stat,err := file.Stat()
   fileSize := stat.Size()
-  nrPagesToLoad :=  fileSize / int64(pageSize)
-  pages := make(map[int]Page,0)
+  nrPagesToLoad :=  fileSize / int64(pageSize) 
+  initPageNr := minInitPageNr(nrPagesToLoad)
+  pages := make([]Page, initPageNr)
   pager := Pager{
     pageSize: pageSize,
     file: file,
@@ -57,11 +73,28 @@ func NewPager(filename string, pageSize int, maxPages int) (*Pager, error) {
   return &pager,nil
 }
 
+func (p * Pager) hasPageAndIsLoaded(pageNumber int) bool {
+  if len(p.pages) <= pageNumber {
+    return false
+  }
+  item := p.pages[pageNumber]
+  if item.loaded {
+    return true
+  }
+  return false
+}
+
 func (p * Pager) GetPage(pageNumber int) (*Page,error) {
   //cache hit
-  if item,ok := p.pages[pageNumber]; ok {
+  if p.hasPageAndIsLoaded(pageNumber) {
+    item := p.pages[pageNumber]
     return &item,nil
   }
+  //This is an assumption, that we only need to increase the pages by one
+  //Actually would be better to resize the slice up to page number
+  if(len(p.pages) <= pageNumber) {
+    p.pages = append(p.pages, Page{})
+  } 
   //cache miss
   filePos := int64(pageNumber * p.pageSize)
   p.file.Seek(filePos, io.SeekStart)
@@ -79,9 +112,11 @@ func (p * Pager) GetPage(pageNumber int) (*Page,error) {
 	// }
   p.pages[pageNumber] = Page {
     rows:rows,
+    loaded: true,
+    size: bytesRead,
   }
-  item := p.pages[pageNumber]
-  return &item,nil
+  //item = p.pages[pageNumber]
+  return &p.pages[pageNumber],nil
 }
 
 func (p * Pager) FlushPages() error {
@@ -95,14 +130,18 @@ func (p * Pager) FlushPages() error {
 }
 
 func (p * Pager) flushPage(pageNumber int) (error) {
-  if _,ok := p.pages[pageNumber]; !ok {
-    return errors.New("Page not in cache. Cannot be flushed") 
+  if pageNumber > len(p.pages) {
+    return errors.New("Page not in cache. Index too large") 
+  }
+  item := p.pages[pageNumber]
+  if !item.loaded {
+    return errors.New("Page not in cache. Not loaded") 
   }
   _, err := p.file.Seek(int64(pageNumber * p.pageSize), io.SeekStart)
   if err != nil {
     return err
   }
-  bytes := make([]byte,0)
+  bytes := make([]byte,0) 
   page := p.pages[pageNumber]
   for _,r := range page.rows {
     bytes = append(bytes, r.ToBytes()...)
@@ -122,32 +161,28 @@ func (p * Pager) flushPage(pageNumber int) (error) {
   return nil
 }
 
-func (p * Pager) getPageWithSpace(r * row.Row) (int, error) {
+func (p * Pager) getPageWithSpace(r * row.Row) (*Page, error) {
     newRowSize := len(r.ToBytes())
     for i:= 0; i <= p.maxPages; i++ {
       page, err := p.GetPage(i)
       if err != nil {
-        return 0, err
+        return nil, err
       }
       if page.size + newRowSize <= p.pageSize {
-        return i,nil 
-      }
+        return &p.pages[i],nil 
+      } 
     }
-    return 0, errors.New("getPageWithSpace: Out of pages")
+    return nil, errors.New("getPageWithSpace: Out of pages")
 }
 
 func (p * Pager) AppendRow(r * row.Row) (error) {
-    pageNr, err := p.getPageWithSpace(r)
+    page, err := p.getPageWithSpace(r)
     if err != nil {
       return err
     }
-    page := p.pages[pageNr]
     newSize := len(r.ToBytes()) + page.size
-    newPage := Page {
-      rows : append(page.rows, *r),
-      size : newSize,
-    }
+    page.rows = append(page.rows, *r)
+    page.size = newSize
     p.rowNumber++
-    p.pages[pageNr] = newPage
     return nil
 }

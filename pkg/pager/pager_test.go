@@ -25,7 +25,7 @@ func TestAppendOnePage(t *testing.T) {
 	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 1)
 	require.NoError(t, err)
 	for i:= 0; i < NROWS; i++ {
-		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
+	r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i), "rufus")
 		err := p.AppendRow(r)
 		require.NoError(t, err)
   }
@@ -54,7 +54,7 @@ func TestAppendMultiPage(t *testing.T) {
 	NROWS_P_PAGE := NROWS / 3
 	p,err := NewPager(path.Join(testPath, "table.db"), PAGE_SIZE, 3)
 	require.NoError(t, err)
-	for i:= 0; i < NROWS; i++ {
+for i:= 0; i < NROWS; i++ {
 		r := row.NewRow(1, fmt.Sprintf("rufus.oelker%d@yahoo.com", i%10), "rufus")
 		err := p.AppendRow(r)
 		require.NoError(t, err)
@@ -171,7 +171,6 @@ func TestGetAndFlushMultiPage(t *testing.T) {
 		require.Equal(t, rows[i].Id(), r.Id())
 		require.Equal(t, rows[i].Username(), r.Username())
   }
-
 }
 
 func TestGetAndFlushMultiPageNotAligned(t *testing.T) {
