@@ -30,7 +30,6 @@ type Table struct {
   pager *pager.Pager
 }
 
-
 func MakeTable(filename string, pageSize int, maxPages int) (* Table, error) {
   pager, err := pager.NewPager(filename, pageSize, maxPages) 
   if err != nil {
@@ -45,6 +44,10 @@ func MakeTable(filename string, pageSize int, maxPages int) (* Table, error) {
 type Statement struct {
   typ StatementType
   row *row.Row
+}
+
+func (t * Table) Pager() (* pager.Pager) {
+  return t.pager
 }
 
 func (t * Table) DoMetaCommand(cmd string) (error) {
@@ -90,9 +93,8 @@ func (t * Table) executeInsert(statement* Statement) {
 }
 
 func (t * Table) executeSelect(statement* Statement) (error) {
-  _ = t.pager.PageMap()[0]
   // fmt.Println(p.Rows()[0].Email())
-  for i := range t.pager.PageMap() {
+  for i := range t.pager.Pages() {
      fmt.Printf("New page boundary page nr is %d\n", i)
      page,err := t.pager.GetPage(i)
      if err != nil {

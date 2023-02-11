@@ -8,7 +8,7 @@ import (
 
 func TestInsertSelect(t *testing.T) {
 	row := row.NewRow(1, "rufus.oelkers@gmail.com", "rufus")
-	tab,err := MakeTable("./table.db", 100)
+	tab,err := MakeTable("./table.db", 100, 10)
 	require.NoError(t, err)
 	s := Statement{
 		typ: STATEMENT_INSERT,
@@ -23,7 +23,7 @@ func TestInsertSelect(t *testing.T) {
 }
 
 func TestInsertMany(t *testing.T) {
-	tab,err := MakeTable("./table.db" , 10)
+	tab,err := MakeTable("./table.db" , 10, 10)
 	require.NoError(t, err)
 	for i:= 0; i < 200; i++ {
 		r := row.NewRow(uint32(i), "rufus.oelkers@gmail.com", "rufus")
